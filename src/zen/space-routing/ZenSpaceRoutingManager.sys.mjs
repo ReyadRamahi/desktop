@@ -135,17 +135,24 @@ class nsZenSpaceRoutingManager {
    * @param {string} uriString - The startup URI
    * @param {boolean} fromExternal - Whether the URI came from another application
    * @param {Window} win - The browser window receiving the startup URI
-   * @returns {boolean} True when the URI should open in a routed tab
+   * @returns {Promise<boolean>} True when the URI should open in a routed tab
    */
-  shouldOpenExternalInNewTab(uriString, fromExternal, win) {
+  async shouldOpenExternalInNewTab(uriString, fromExternal, win) {
     if (!fromExternal) {
       return false;
     }
 
-    const targetRoute = this.routeUri(uriString, { fromExternal: true });
+    // The manager exists before delayed startup, but SessionStore may not have
+    // populated its workspace data yet.
+    await win.gZenWorkspaces.promiseInitialized;
+    if (win.closed) {
+      return false;
+    }
+
+    const targetRoute = this.routeUri(uriString, { fromExternal });
     return (
       targetRoute !== "most-recent-space" &&
-      !!win?.gZenWorkspaces?.getWorkspaceFromId?.(targetRoute)
+      !!win.gZenWorkspaces.getWorkspaceFromId(targetRoute)
     );
   }
 
